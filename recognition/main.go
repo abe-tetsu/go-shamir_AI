@@ -61,8 +61,10 @@ func main() {
 		}
 	}
 
+	fmt.Println("テストケース数:", len(test.Images))
+	fmt.Println("正解数　　　　:", correctCount)
 	accuracy := float64(correctCount) / float64(len(test.Images))
-	fmt.Printf("Test Accuracy: %.2f%%\n", accuracy*100)
+	fmt.Printf("精度　　　　　: %.2f%%\n", accuracy*100)
 }
 
 func relu(x float64) float64 {
@@ -78,7 +80,7 @@ func TransformData(data image.Image) []float64 {
 		for x := 0; x < 28; x++ {
 			pixel := data.At(x, y)
 			gray, _, _, _ := pixel.RGBA()
-			input[y*28+x] = float64(gray) / 65535
+			input[y*28+x] = float64(gray) / 6553500
 		}
 	}
 	return input

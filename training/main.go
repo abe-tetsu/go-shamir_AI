@@ -27,8 +27,8 @@ func main() {
 
 	inputSize := 784 // 入力層のニューロン数
 	outputSize := 10 // 出力層のニューロン数
-	learningRate := 0.01
-	epochs := 10
+	learningRate := 1.0
+	epochs := 5
 
 	// 重みとバイアスの初期化
 	weights := make([][]float64, inputSize)
@@ -125,7 +125,7 @@ func TransformData(data image.Image) []float64 {
 		for x := 0; x < 28; x++ {
 			pixel := data.At(x, y)
 			gray, _, _, _ := pixel.RGBA()
-			input[y*28+x] = float64(gray) / 65535
+			input[y*28+x] = float64(gray) / 6553500
 		}
 	}
 	return input
