@@ -46,11 +46,9 @@ func (nn *NeuralNetwork) TrainNetWork(trainDataSet *util.MnistDataSet) (*util.Mn
 			// 順伝播の計算
 			z := make([]float64, nn.Output)
 			for j := range weight {
-				dotProduct, err := util.Dot(dataImage, weight[j]) // エラーハンドリングは省略
-				if err != nil {
-					return nil, err
+				for k := range weight[j] {
+					z[k] += dataImage[j] * weight[j][k]
 				}
-				z[j] = dotProduct + bias[j]
 			}
 			a := util.Relu(z)
 
@@ -81,12 +79,12 @@ func (nn *NeuralNetwork) TrainNetWork(trainDataSet *util.MnistDataSet) (*util.Mn
 	nn.Bias = bias
 
 	// 重みとバイアスを保存
-	err := util.SaveWeights(weight, "go_ai/ai-data/weights.gob")
+	err := util.SaveWeights(weight, "./ai-data/weights.gob")
 	if err != nil {
 		return nil, err
 	}
 
-	err = util.SaveBias(bias, "go_ai/ai-data/bias.gob")
+	err = util.SaveBias(bias, "./ai-data/bias.gob")
 	if err != nil {
 		return nil, err
 	}

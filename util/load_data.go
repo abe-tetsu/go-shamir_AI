@@ -91,11 +91,11 @@ func LoadBias(fileName string) ([]float64, error) {
 	return bias, nil
 }
 
-func TransformData(data MnistData) []float64 {
+func TransformData(data image.Image) []float64 {
 	input := make([]float64, 784)
 	for y := 0; y < 28; y++ {
 		for x := 0; x < 28; x++ {
-			pixel := data.RawImage.At(x, y)
+			pixel := data.At(x, y)
 			gray, _, _, _ := pixel.RGBA()
 			input[y*28+x] = float64(gray) / 65535
 		}

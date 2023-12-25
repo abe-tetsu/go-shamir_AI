@@ -2,68 +2,84 @@ package main
 
 import (
 	"fmt"
-	"github.com/abe-tetsu/shamir-ai/prediction"
 	"github.com/abe-tetsu/shamir-ai/util"
 	"github.com/petar/GoMNIST"
+	"image"
 	"os"
 )
 
 func main() {
-	// mnistデータをダウンロード
-	err := util.DownloadMnist()
-	if err != nil {
-		fmt.Printf("failed to download mnist data: %w", err)
-		os.Exit(2)
-	}
+	fmt.Println("Start testing...")
 
+	// MNISTデータをロード
 	_, test, err := GoMNIST.Load("./data")
 	if err != nil {
-		fmt.Printf("failed to load mnist data: %w", err)
-		os.Exit(2)
+		fmt.Printf("failed to load mnist data: %v\n", err)
+		os.Exit(1)
 	}
 
-	testDataSet := util.NewMnistDataSet(test)
-
-	// 重みをロード
-	weight, err := util.LoadWeights("./ai-data/weights.gob")
+	// 重みとバイアスをロード
+	weights, err := util.LoadWeights("./ai-data/weights.gob")
 	if err != nil {
-		fmt.Printf("failed to load weights: %w", err)
-		os.Exit(2)
+		fmt.Printf("failed to load weights: %v\n", err)
+		os.Exit(1)
 	}
 
-	// バイアスをロード
-	bias, err := util.LoadBias("./ai-data/bias.gob")
+	biases, err := util.LoadBias("./ai-data/bias.gob")
 	if err != nil {
-		fmt.Printf("failed to load bias: %w", err)
-		os.Exit(2)
+		fmt.Printf("failed to load biases: %v\n", err)
+		os.Exit(1)
 	}
 
+	// テストデータで精度を計算
 	correctCount := 0
-	for _, testData := range testDataSet.DataSet {
-		// MNISTデータを適切な形式に変換
-		input := util.TransformData(testData)
+	for index := 0; index < len(test.Images); index++ {
+		// 画像データの変換
+		dataImage := TransformData(test.Images[index])
 
-		result, err := prediction.Predict(input, weight, bias)
-		if err != nil {
-			fmt.Printf("failed to predict: %w", err)
-			os.Exit(2)
+		// 順伝播の計算
+		outputs := make([]float64, len(biases))
+		for j := range outputs {
+			for k := range weights {
+				outputs[j] += dataImage[k] * weights[k][j]
+			}
+			outputs[j] += biases[j]
+			outputs[j] = relu(outputs[j])
 		}
 
-		// resultの中で最大の値を持つインデックスを取得
-		maxIndex := 0
-		for j := 0; j < len(result); j++ {
-			if result[j] > result[maxIndex] {
-				maxIndex = j
+		// 最も高い出力を持つラベルを選択
+		maxIndex, maxValue := 0, outputs[0]
+		for i, val := range outputs {
+			if val > maxValue {
+				maxIndex, maxValue = i, val
 			}
 		}
 
-		// 予測結果と正解を比較
-		if int64(maxIndex) == testData.Label {
+		// 正解数をカウント
+		if maxIndex == int(test.Labels[index]) {
 			correctCount++
 		}
 	}
 
-	// 正解率を出力
-	fmt.Println("テストケース数: ", len(testDataSet.DataSet))
-	fmt.Println("正解率　　　　: ", float64(correctCount)/float64(len(testDataSet.DataSet))*100, "%")
+	accuracy := float64(correctCount) / float64(len(test.Images))
+	fmt.Printf("Test Accuracy: %.2f%%\n", accuracy*100)
+}
+
+func relu(x float64) float64 {
+	if x > 0 {
+		return x
+	}
+	return 0
+}
+
+func TransformData(data image.Image) []float64 {
+	input := make([]float64, 784)
+	for y := 0; y < 28; y++ {
+		for x := 0; x < 28; x++ {
+			pixel := data.At(x, y)
+			gray, _, _, _ := pixel.RGBA()
+			input[y*28+x] = float64(gray) / 65535
+		}
+	}
+	return input
 }
