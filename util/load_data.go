@@ -3,41 +3,10 @@ package util
 import (
 	"encoding/gob"
 	"errors"
-	"github.com/petar/GoMNIST"
 	"image"
 	"math"
 	"os"
 )
-
-type MnistData struct {
-	RawImage image.Image
-	Label    int64
-}
-
-type MnistDataSet struct {
-	DataSet []MnistData
-	NCol    int
-	NRow    int
-}
-
-func NewMnistDataSet(set *GoMNIST.Set) *MnistDataSet {
-	dataSet := MnistDataSet{NCol: set.NCol, NRow: set.NRow}
-	dataSet.DataSet = make([]MnistData, 0, set.Count())
-	for i, rawData := range set.Images {
-		data := newMnistDataFromGoMNISTData(rawData, int64(set.Labels[i]))
-		dataSet.addData(data)
-	}
-	return &dataSet
-}
-
-func newMnistDataFromGoMNISTData(src GoMNIST.RawImage, label int64) MnistData {
-	data := MnistData{src, label}
-	return data
-}
-
-func (set *MnistDataSet) addData(data MnistData) {
-	set.DataSet = append(set.DataSet, data)
-}
 
 // LoadWeights は指定されたファイル名から重みの2次元配列を読み込み、NaNが含まれているかをチェックします。
 func LoadWeights(fileName string) ([][]float64, error) {
@@ -97,8 +66,72 @@ func TransformData(data image.Image) []float64 {
 		for x := 0; x < 28; x++ {
 			pixel := data.At(x, y)
 			gray, _, _, _ := pixel.RGBA()
-			input[y*28+x] = float64(gray) / 65535
+			input[y*28+x] = float64(gray) / 6553500
 		}
 	}
 	return input
+}
+
+// containsNaNInMatrix は2次元配列内にNaNが含まれているかチェックします。
+func containsNaNInMatrix(matrix [][]float64) bool {
+	for _, row := range matrix {
+		for _, value := range row {
+			if math.IsNaN(value) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// containsNaNInSlice は1次元配列内にNaNが含まれているかチェックします。
+func containsNaNInSlice(slice []float64) bool {
+	for _, value := range slice {
+		if math.IsNaN(value) {
+			return true
+		}
+	}
+	return false
+}
+
+// SaveWeights は重みをファイルに保存します。
+// 重みの要素にNaNが含まれている場合はエラーを返します。
+func SaveWeights(weights [][]float64, fileName string) error {
+	if containsNaNInMatrix(weights) {
+		return errors.New("weights contain NaN values")
+	}
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(file)
+	if err := encoder.Encode(weights); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SaveBias はバイアスをファイルに保存します。
+// バイアスの要素にNaNが含まれている場合はエラーを返します。
+func SaveBias(bias []float64, fileName string) error {
+	if containsNaNInSlice(bias) {
+		return errors.New("bias contains NaN values")
+	}
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(file)
+	if err := encoder.Encode(bias); err != nil {
+		return err
+	}
+
+	return nil
 }

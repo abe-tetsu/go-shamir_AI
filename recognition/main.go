@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/abe-tetsu/shamir-ai/util"
 	"github.com/petar/GoMNIST"
-	"image"
 	"os"
 )
 
@@ -35,7 +34,7 @@ func main() {
 	correctCount := 0
 	for index := 0; index < len(test.Images); index++ {
 		// 画像データの変換
-		dataImage := TransformData(test.Images[index])
+		dataImage := util.TransformData(test.Images[index])
 
 		// 順伝播の計算
 		outputs := make([]float64, len(biases))
@@ -72,16 +71,4 @@ func relu(x float64) float64 {
 		return x
 	}
 	return 0
-}
-
-func TransformData(data image.Image) []float64 {
-	input := make([]float64, 784)
-	for y := 0; y < 28; y++ {
-		for x := 0; x < 28; x++ {
-			pixel := data.At(x, y)
-			gray, _, _, _ := pixel.RGBA()
-			input[y*28+x] = float64(gray) / 6553500
-		}
-	}
-	return input
 }
